@@ -1,5 +1,4 @@
-const ws = new WebSocket('wss://pencil-whiteboard.onrender.com');
-
+const socket = new WebSocket('wss://pencil-whiteboard.onrender.com');
 
 
 socket.onopen = () => {
