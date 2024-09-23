@@ -11,20 +11,18 @@ html {
   position: fixed; 
   top: 0;
   left: 0;
-  width: 800px; /* Sidebar width */
+  width: 800px; /* Adjust as needed */
   height: 6vh; /* Full viewport height */
   background-color: #ccc;
-  /* border: 1px solid #afafaf; */
   border-radius: 8px;
   z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: flex; /* Change from column to row */
+  align-items: center; /* Align items vertically */
   margin-left: 33%;
   margin-top: 10px;
-  /* padding-top: 20px;  */
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); 
 }
+
 
 #brushColor{
   
@@ -48,12 +46,37 @@ html {
   display: none;
 }
 
+.tool-icon-topbar {
+  width: 40px; /* Icon size */
+  height: 40px;
+  padding: 5px;
+  margin: 0 10px; /* Add horizontal margin */
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+.tool-icon-topbar:hover {
+  background-color: #ddd;
+}
+
+.tool-icon-topbar.active {
+  border-radius: 8px;
+  background-color: #3195ff;
+  transform: scale(1.1);
+}
+
+#imageImportTool{
+  width: 35px;
+  height: 35px;
+  
+}
+
 .tool-icon-clear{
   width: 40px; /* Icon size */
   height: 40px;
   padding: 2px;
-  margin-top: 8px;
-  margin-right: 725px;
+  /* margin-top: 4px; */
+  margin-right: 7px;
+  margin-left: 10px;
   cursor: pointer;
   transition: background-color 0.3s, transform 0.2s;
 }
@@ -66,6 +89,7 @@ html {
   background-color: #3195ff;
   transform: scale(1.1);
 }
+
 #sidebar {
   position: fixed;
   top: 0;
@@ -84,6 +108,7 @@ html {
   padding-top: 20px; /* Space at the top for tools */
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); /* Add drop shadow */
 }
+
 canvas {
   display: block;
   width: 100vw;
@@ -91,6 +116,7 @@ canvas {
   cursor: default;
   display: block;
 }
+
 .tool-icon,
 .tool-icon-2 {
   width: 40px; /* Icon size */
@@ -99,10 +125,12 @@ canvas {
   cursor: pointer;
   transition: background-color 0.3s, transform 0.2s;
 }
+
 .tool-icon:hover,
 .tool-icon-2:hover {
   background-color: #ddd;
 }
+
 .tool-icon.active,
 .tool-icon-2.active {
   border-radius: 8px;

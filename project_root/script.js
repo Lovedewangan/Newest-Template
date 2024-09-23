@@ -139,11 +139,6 @@ canvas.addEventListener("mousedown", (e) => {
   lastX = x;
   lastY = y;
 
-  if (isEraserActive) {
-    eraseStroke(x, y);
-    draw();
-    return;
-  }
 
   if (e.button === 2) {
     clearCanvas();
@@ -151,6 +146,14 @@ canvas.addEventListener("mousedown", (e) => {
   }
 
   isDrawing = true;
+
+  if (isEraserActive) {
+    eraseStroke(x, y);
+    const message = JSON.stringify({ type: 'erase', x, y });
+    socket.send(message);
+    draw();
+    return;
+  }
 
   if (isPencilActive) {
     const brushColor = document.getElementById("brushColor").value;
@@ -385,7 +388,18 @@ function handleRemoteDrawing(data) {
   console.log('Handling remote drawing:', data);
   switch (data.type) {
     case 'draw':
-      if (strokes.length === 0 || !colorMatch(strokes[strokes.length - 1].color, data.color)) {
+      const lastStroke = strokes[strokes.length - 1];
+      const shouldStartNewStroke = () => {
+        if (strokes.length === 0) return true;
+        if (!colorMatch(lastStroke.color, data.color)) return true;
+        const lastPoint = lastStroke.points[lastStroke.points.length - 1];
+        const dx = data.x - lastPoint[0];
+        const dy = data.y - lastPoint[1];
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance > 0.1; // Adjust this threshold as needed
+      };
+
+      if (shouldStartNewStroke()) {
         console.log('Adding new stroke');
         strokes.push({
           points: [[data.x, data.y]],
@@ -393,7 +407,7 @@ function handleRemoteDrawing(data) {
         });
       } else {
         console.log('Adding point to existing stroke');
-        strokes[strokes.length - 1].points.push([data.x, data.y]);
+        lastStroke.points.push([data.x, data.y]);
       }
       draw();
       break;
@@ -486,6 +500,7 @@ canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
 // Erase function
 function eraseStroke(x, y) {
+  let erasedAny = false;
   for (let i = 0; i < strokes.length; i++) {
     const stroke = strokes[i];
     for (let j = 0; j < stroke.points.length; j++) {
@@ -496,10 +511,11 @@ function eraseStroke(x, y) {
 
       if (distance < ERASER_RADIUS) {
         strokes.splice(i, 1);
-        
+        erasedAny = true;
         return;
       }
     }
+    if (erasedAny) break;
   }
 }
 
@@ -635,3 +651,4 @@ clearTool.addEventListener("mouseup", () => {
 clearTool.addEventListener("mouseleave", () => {
   clearTool.classList.remove("active");
 });
+
