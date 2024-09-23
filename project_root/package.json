@@ -1,10 +1,11 @@
 {
-  "name": "websocket-drawing-app",
+  "name": "pencil-whiteboard-application",
   "version": "1.0.0",
   "description": "A WebSocket-based real-time collaborative drawing application.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "build": "echo 'No build step needed'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
