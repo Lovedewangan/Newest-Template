@@ -529,24 +529,6 @@ function hexToRgb(hex) {
   return [r, g, b];
 }
 
-// Tool button handlers
-// document.getElementById("pencilTool").addEventListener("click", () => {
-//   isPencilActive = true;
-//   isEraserActive = false;
-//   isNeonPenActive = false;
-// });
-
-// document.getElementById("eraserTool").addEventListener("click", () => {
-//   isPencilActive = false;
-//   isEraserActive = true;
-//   isNeonPenActive = false;
-// });
-
-// document.getElementById("neonPenTool").addEventListener("click", () => {
-//   isPencilActive = false;
-//   isEraserActive = false;
-//   isNeonPenActive = true;
-// });
 
 
 const pencilTool = document.getElementById("pencilTool");
