@@ -23,6 +23,31 @@ html {
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); 
 }
 
+#footer {
+  position: fixed; 
+  top: 90;
+  left: 0;
+  width: 2150px; /* Sidebar width */
+  height: 6vh; /* Full viewport height */
+  background-color: #e0e0e0;
+  /* border: 1px solid #afafaf; */
+  border-radius: 8px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+/* margin-left: 33%; */
+  /* margin-bottom: 10px; */
+  /* padding-top: 20px;  */
+  margin-top: 54%;
+  
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); 
+}
+
+#footer .cen{
+  margin-right: 20%;
+  margin-top: 1%;
+}
 
 #brushColor{
   
@@ -149,3 +174,4 @@ canvas {
   height: 30px;
   padding: 8%;
 }
+
