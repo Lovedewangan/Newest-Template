@@ -141,10 +141,7 @@ canvas.addEventListener("mousedown", (e) => {
   lastY = y;
 
 
-  if (e.button === 2) {
-    clearCanvas();
-    return;
-  }
+  
 
   isDrawing = true;
 
@@ -314,21 +311,7 @@ function draw_neon() {
   let activeStrokes = 0;
 
   fadeStrokes = fadeStrokes.filter(stroke => {
-    // const points = stroke.points.flat();
-    // const baseColor = stroke.color;
-    // const timeElapsed = (currentTime - stroke.startTime) / 1000;
-
-    // const fadeDuration = 2;
-    // const alpha = Math.max(1 - timeElapsed / fadeDuration, 0);
-    // const fadedColor = [...baseColor.slice(0, 3), alpha];
-
-    // gl.uniform4f(colorLocation, ...fadedColor);
-
     
-    //  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(points), gl.STATIC_DRAW);
-    // gl.drawArrays(gl.LINE_STRIP, 0, points.length / 2);
-
-    // return alpha > 0;
     const timeSinceLastDraw = currentTime - stroke.lastDrawTime;
     //const timeSinceStart = currentTime - stroke.startTime;
 
@@ -346,22 +329,7 @@ function draw_neon() {
   stroke.alpha = 1;
  }
 
-//  if (stroke.alpha > 0) {
-//   activeStrokes++;
-//   return true;
-//  }
-//  return false;
-//   });
 
-//   fadeStrokes.forEach(stroke => {
-//     if (stroke.alpha > 0) {
-//      const points = stroke.points.flat();
-//      const fadedColor = [...stroke.color.slice(0, 3), stroke.alpha];
-//      gl.uniform4f(colorLocation, ...fadedColor);
-//      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(points), gl.STATIC_DRAW);
-//      gl.drawArrays(gl.LINE_STRIP, 0, points.length / 2);
-//     }
-//     });
 
 if (stroke.alpha > 0) {
   activeStrokes++;
@@ -468,19 +436,7 @@ function clearCanvas() {
   gl.clearColor(245 / 255, 245 / 255, 245 / 255, 1); // Off-white background
   gl.clear(gl.COLOR_BUFFER_BIT);
   
-//   while(fadeStrokes.length > 0) {
-//     fadeStrokes.pop();
-// }
-// while(strokes.length > 0) {
-//   strokes.pop();
-// }
-//   strokes.length = 0;
-//   fadeStrokes.length = 0;
 
-//   if (animationFrameId) {
-//     cancelAnimationFrame(animationFrameId);
-//     animationFrameId = null;
-//   }
 
   // Clear the local canvas
   strokes.length = 0;
