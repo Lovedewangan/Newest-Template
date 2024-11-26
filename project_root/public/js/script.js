@@ -3310,8 +3310,8 @@ function exportAsImage(format) {
 
     // Flip the WebGL content vertically (WebGL Y-coordinate is inverted)
     tempCtx.save();
-    tempCtx.scale(1, -1);
-    tempCtx.drawImage(gl.canvas, 0, -gl.canvas.height);
+    tempCtx.scale(1, 1);
+    tempCtx.drawImage(gl.canvas, 0, 0);
     tempCtx.restore();
 
     // Create a download link
