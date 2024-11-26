@@ -283,14 +283,17 @@ function normalizeCoordinates(e, canvas) {
 }
 
 class Stroke {
-    constructor(initialSize = 7) {
+    constructor(initialSize = 1, currentSize = null) {
         this.id = generateUniqueId();
         this.points = [];
         this.smoothedPoints = [];
         this.color = [0, 0, 0, 1];
-        this.initialStrokeSize = initialSize; // Store initial stroke size
-        this.renderStrokeSize = initialSize; // Size used for rendering
-        this.strokeSize = initialSize;
+        this.initialStrokeSize = initialSize; // Original stroke size
+
+        // Use the provided current size, or default to initial size
+        this.strokeSize = currentSize || initialSize;
+        this.renderStrokeSize = currentSize || initialSize;
+
         this.renderPoints = []; // Separate array for rendering
         this.scale = 1;
         this.rotation = 0;
@@ -418,7 +421,45 @@ class Stroke {
         }
     }
 
-    
+    // Advanced point interpolation method
+    // addPoint(x, y) {
+    //     // First point
+    //     if (this.points.length === 0) {
+    //         this.points.push([x, y]);
+    //         this.smoothedPoints.push([x, y]);
+    //         this.lastPoint = [x, y];
+    //         return;
+    //     }
+
+    //     // Calculate distance from last point
+    //     const [lastX, lastY] = this.lastPoint;
+    //     const distance = Math.sqrt(
+    //         Math.pow(x - lastX, 2) +
+    //         Math.pow(y - lastY, 2)
+    //     );
+
+    //     // Interpolate points for smooth drawing
+    //     if (distance > this.interpolationThreshold) {
+    //         // Linear interpolation
+    //         const interpolationSteps = Math.ceil(distance / this.interpolationThreshold);
+
+    //         for (let i = 1; i <= interpolationSteps; i = i + .01) {
+    //             const t = i / interpolationSteps;
+    //             const interpX = lastX + t * (x - lastX);
+    //             const interpY = lastY + t * (y - lastY);
+
+    //             this.points.push([interpX, interpY]);
+    //             this.smoothedPoints.push([interpX, interpY]);
+    //         }
+
+    //         this.lastPoint = [x, y];
+    //     } else {
+    //         // Add point directly if close to last point
+    //         this.points.push([x, y]);
+    //         this.smoothedPoints.push([x, y]);
+    //         this.lastPoint = [x, y];
+    //     }
+    // }
     smoothInterpolate(start, end, t) {
         // Enhanced cubic interpolation with tension control
         const tension = 0.5; // Adjust for different curve characteristics
@@ -586,7 +627,12 @@ class Stroke {
     }
 
     updateCurrentStrokeSize(newSize) {
-        this.renderStrokeSize = newSize;
+        // Ensure the new size is within reasonable bounds
+        const constrainedSize = Math.max(1, Math.min(newSize, 50));
+
+        // Update both strokeSize and renderStrokeSize
+        this.strokeSize = constrainedSize;
+        this.renderStrokeSize = constrainedSize;
     }
 
     generateThickLineGeometry(points, thickness) {
@@ -1031,14 +1077,37 @@ canvas.addEventListener("mousedown", (e) => {
     }
 
     if (isPixelEraserActive) {
-        canvas.style.cursor = `url('${eraserCursor}') 16 16, auto`;
-        erasePixel(x, y);
-        const message = JSON.stringify({ type: 'erasePixel', x, y });
+        draw(); // Finalize the erase
+        
+        // Send comprehensive stroke data after pixel erasing
+        const message = JSON.stringify({
+            type: 'erasePixel',
+            userId: userId,
+            x: lastX,
+            y: lastY,
+            updatedStrokes: strokes.map(stroke => {
+                // Create a plain object representation of the stroke
+                const strokeData = {
+                    ...stroke,
+                    points: stroke.points,
+                    color: stroke.color,
+                    strokeSize: stroke.strokeSize
+                };
+                
+                // Add additional properties for shapes
+                if (stroke.type) {
+                    strokeData.type = stroke.type;
+                    strokeData.startX = stroke.startX;
+                    strokeData.startY = stroke.startY;
+                    strokeData.endX = stroke.endX;
+                    strokeData.endY = stroke.endY;
+                }
+                
+                return strokeData;
+            })
+        });
         socket.send(message);
-        draw();
-        return;
     }
-
     // Handle pencil
     if (isPencilActive) {
         canvas.style.cursor = `url('${getPencilCursor(brushColorPicker.value)}') 0 24, auto`;
@@ -1058,7 +1127,6 @@ canvas.addEventListener("mousedown", (e) => {
         // Send the new stroke data to the server
         const message = JSON.stringify({
             type: 'drawStart',
-            roomId: currentRoomId,
             userId: userId,
             strokeId: currentStroke.id,
             x,
@@ -1126,8 +1194,7 @@ canvas.addEventListener("mousedown", (e) => {
                 }
             });
 
-            // Highlight the selected stroke
-            selectedStroke.setColor(1, 0, 0, 0.5); // Red with transparency
+            
             requestAnimationFrame(draw);
         } else {
             console.log("No stroke selected. Try clicking closer to a stroke.");
@@ -1141,6 +1208,8 @@ canvas.addEventListener("mousedown", (e) => {
 
         return;
     }
+
+    
 });
 
 
@@ -1184,7 +1253,6 @@ canvas.addEventListener("mousemove", (e) => {
 
         const message = JSON.stringify({
             type: 'draw',
-            roomId: currentRoomId,
             userId: userId,
             strokeId: currentStroke.id,
             x,
@@ -1196,14 +1264,16 @@ canvas.addEventListener("mousemove", (e) => {
 
     if (isPixelEraserActive && isDrawing) {
         erasePixel(x, y);
+        
+        // Add WebSocket message sending
         const message = JSON.stringify({
-            type: 'pixelErase',
-            userId: userId,
+            type: 'erasePixel',
             x,
             y
         });
         socket.send(message);
-        draw()
+        
+        draw();
     }
 
 
@@ -1273,7 +1343,6 @@ canvas.addEventListener("mouseup", () => {
     if (isDrawing) {
         const message = JSON.stringify({
             type: 'drawEnd',
-            roomId: currentRoomId,
             userId: userId,
             strokeId: currentStroke ? currentStroke.id : null
         });
@@ -1301,6 +1370,13 @@ canvas.addEventListener("mouseup", () => {
 
     if (isPixelEraserActive) {
         draw(); // Finalize the erase
+        
+        // Optional: Send a final erase message if needed
+        const message = JSON.stringify({
+            type: 'erasePixelEnd',
+            userId: userId
+        });
+        socket.send(message);
     }
 
     if (isDragging && selectedStroke) {
@@ -2076,14 +2152,7 @@ function handleRemoteDrawing(data) {
 
     switch (type) {
 
-        case 'strokeSizeUpdate':
-            const { strokeId, size } = data;
-            const stroke = strokes.find(s => s.id === strokeId);
-            if (stroke) {
-                stroke.updateStrokeSize(size);
-                requestAnimationFrame(draw);
-            }
-            break;
+        
 
         case 'shapeStart':
             const shapeObj = new Shape(data.shapeType);
@@ -2104,6 +2173,7 @@ function handleRemoteDrawing(data) {
                 requestAnimationFrame(draw);
             }
             break;
+        // Modify the 'drawStart' case
         case 'drawStart':
             const { x, y, color, strokeSize: initialSize } = data;
             const newStroke = new Stroke(initialSize);
@@ -2111,21 +2181,35 @@ function handleRemoteDrawing(data) {
             newStroke.setColor(color[0], color[1], color[2], color[3]);
             newStroke.addPoint(x, y);
             strokes.push(newStroke);
+            // Add the stroke to userStrokes
+            userStrokes[strokeId] = newStroke;
             requestAnimationFrame(draw);
             break;
 
         case 'draw':
-            const { x: drawX, y: drawY } = data;
-            if (userStrokes[strokeId]) {
-                userStrokes[strokeId].addPoint(drawX, drawY);
-                userStrokes[strokeId].updateStrokeSize(strokeSize);
-
+            const { x: drawX, y: drawY, strokeId: drawStrokeId } = data;
+            const drawStroke = strokes.find(s => s.id === drawStrokeId);
+            
+            if (drawStroke) {
+                drawStroke.addPoint(drawX, drawY);
                 requestAnimationFrame(draw);
+            } else {
+                console.warn(`Stroke with ID ${drawStrokeId} not found`);
             }
             break;
 
+
         case 'drawEnd':
             delete userStrokes[strokeId];
+            break;
+
+        case 'strokeSizeUpdate':
+            const { strokeId: sizeStrokeId, size } = data;
+            const sizeStroke = strokes.find(s => s.id === sizeStrokeId);
+            if (sizeStroke) {
+                sizeStroke.updateStrokeSize(size);
+                requestAnimationFrame(draw);
+            }
             break;
 
         case 'erase':
@@ -2135,8 +2219,27 @@ function handleRemoteDrawing(data) {
             break;
 
         case 'erasePixel':
-            const { x: erasePixelX, y: erasePixelY } = data;
-            erasePixel(erasePixelX, erasePixelY);
+            const { x: erasePixelX, y: erasePixelY, updatedStrokes } = data;
+            
+            // If updatedStrokes is provided, directly replace the strokes
+            if (updatedStrokes) {
+                strokes = updatedStrokes.map(strokeData => {
+                    // Reconstruct strokes with proper methods
+                    let stroke;
+                    if (strokeData.type && ['rectangle', 'circle', 'triangle'].includes(strokeData.type)) {
+                        stroke = new Shape(strokeData.type);
+                        Object.assign(stroke, strokeData);
+                    } else {
+                        stroke = new Stroke(strokeData.strokeSize);
+                        Object.assign(stroke, strokeData);
+                    }
+                    return stroke;
+                });
+            } else {
+                // Fallback to original pixel erase method if no updated strokes are provided
+                erasePixel(erasePixelX, erasePixelY);
+            }
+            
             requestAnimationFrame(draw);
             break;
 
@@ -2249,6 +2352,7 @@ function handleRemoteDrawing(data) {
             console.log('Unknown drawing type:', type);
     }
 }
+
 
 
 function handleDrawStart(event) {
@@ -2402,8 +2506,8 @@ function erasePixel(x, y) {
         // Use the original stroke size for eraser radius calculation
         // Make sure to store the original size to prevent accumulation
         const originalStrokeSize = stroke.originalStrokeSize || stroke.strokeSize;
-        stroke.originalStrokeSize = originalStrokeSize; // Store for future reference
-        
+        // stroke.originalStrokeSize = originalStrokeSize; // Store for future reference
+
         const dynamicPixelEraserRadius = PIXEL_ERASER_RADIUS * (originalStrokeSize / 10);
 
         // Special handling for shapes
@@ -2412,7 +2516,7 @@ function erasePixel(x, y) {
             const shapePoints = [];
 
             // Generate points along the shape's border
-            switch(stroke.type) {
+            switch (stroke.type) {
                 case 'rectangle':
                     // Rectangle border points
                     shapePoints.push(
@@ -2423,16 +2527,16 @@ function erasePixel(x, y) {
                         [stroke.startX, stroke.startY]  // Back to start
                     );
                     break;
-                    
+
                 case 'circle':
                     // Generate points along circle circumference
                     const centerX = (stroke.startX + stroke.endX) / 2;
                     const centerY = (stroke.startY + stroke.endY) / 2;
                     const radius = Math.sqrt(
-                        Math.pow(stroke.endX - stroke.startX, 2) + 
+                        Math.pow(stroke.endX - stroke.startX, 2) +
                         Math.pow(stroke.endY - stroke.startY, 2)
                     ) / 2;
-                    
+
                     for (let angle = 0; angle < 360; angle += 10) {
                         const radian = angle * Math.PI / 180;
                         shapePoints.push([
@@ -2441,7 +2545,7 @@ function erasePixel(x, y) {
                         ]);
                     }
                     break;
-                    
+
                 case 'triangle':
                     // Triangle border points
                     const midX = (stroke.startX + stroke.endX) / 2;
@@ -2458,7 +2562,7 @@ function erasePixel(x, y) {
             for (let i = 0; i < shapePoints.length - 1; i++) {
                 const [x1, y1] = shapePoints[i];
                 const [x2, y2] = shapePoints[i + 1];
-                
+
                 const distance = stroke.distanceToLineSegment(x, y, x1, y1, x2, y2);
                 if (distance <= dynamicPixelEraserRadius) {
                     keepShape = false;
@@ -2500,9 +2604,10 @@ function erasePixel(x, y) {
                 if (segmentStarted && currentSegment.length >= 2) {
                     const newStroke = createStrokeFromPoints(currentSegment, stroke);
                     if (newStroke) {
-                        // Ensure the new stroke keeps the original size
-                        newStroke.strokeSize = originalStrokeSize;
-                        newStroke.originalStrokeSize = originalStrokeSize;
+                        // Preserve the current stroke sizes
+                        newStroke.initialStrokeSize = stroke.initialStrokeSize;
+                        newStroke.strokeSize = stroke.strokeSize;
+                        newStroke.renderStrokeSize = stroke.renderStrokeSize;
                         newSegments.push(newStroke);
                     }
                 }
@@ -2515,8 +2620,10 @@ function erasePixel(x, y) {
         if (segmentStarted && currentSegment.length >= 2) {
             const newStroke = createStrokeFromPoints(currentSegment, stroke);
             if (newStroke) {
-                newStroke.strokeSize = originalStrokeSize;
-                newStroke.originalStrokeSize = originalStrokeSize;
+                newStroke.initialStrokeSize = stroke.initialStrokeSize;
+                newStroke.strokeSize = stroke.strokeSize;
+                newStroke.renderStrokeSize = stroke.renderStrokeSize;
+
                 newSegments.push(newStroke);
             }
         }
@@ -2665,12 +2772,30 @@ function getPencilCursor(color) {
 }
 
 
+// const pencilTool = document.getElementById('pencilTool');
+const strokeSizeContainer = document.querySelector('.stroke-size-container');
+const colorPicker = document.querySelector('.color-picker-container');
+
+// Initial positioning and visibility
+function positionStrokeSizeContainer() {
+    strokeSizeContainer.style.position = 'absolute';
+    strokeSizeContainer.style.left = `${colorPicker.offsetLeft + 80}px`; // Move more to the right
+    strokeSizeContainer.style.top = `${colorPicker.offsetTop + colorPicker.offsetHeight + 10}px`;
+    strokeSizeContainer.style.zIndex = '1001';
+}
+
+// document.addEventListener('DOMContentLoaded', showInitialStrokeSize);
+
+// const pencilTool = document.getElementById('pencilTool');
+
 pencilTool.addEventListener("click", () => {
     if (isPencilActive) {
         isPencilActive = false;
         pencilTool.classList.remove("active");
         pencilTool.style.backgroundColor = ""; // Reset background color
         canvas.style.cursor = "default";
+        strokeSizeContainer.style.display = 'none';
+        // selectedStroketrokeSizeContainer.style.display = 'none';
     } else {
         isPencilActive = true;
         isEraserActive = false;
@@ -2691,12 +2816,38 @@ pencilTool.addEventListener("click", () => {
         pixelEraserTool.style.backgroundColor = ""; // Reset eraser background color
         neonPenTool.style.backgroundColor = ""; // Reset neon-pen background color
         selectionTool.style.backgroundColor = ""; // Reset select tool background color
-        //canvas.style.cursor = "crosshair";
         canvas.style.cursor = `url('${getPencilCursor(brushColorPicker.value)}') 0 24, auto`;
-
+        positionStrokeSizeContainer();
+        strokeSizeContainer.style.display = 'none';
     }
 });
 
+
+strokeSizeContainer.addEventListener('mouseenter', () => {
+    if (isPencilActive) {
+        strokeSizeContainer.style.display = 'flex';
+    }
+});
+
+strokeSizeContainer.addEventListener('mouseleave', () => {
+    if (isPencilActive) {
+        strokeSizeContainer.style.display = 'none';
+    }
+});
+
+// Hover handling for pencil tool
+pencilTool.addEventListener('mouseenter', () => {
+    if (isPencilActive) {
+        positionStrokeSizeContainer();
+        strokeSizeContainer.style.display = 'flex';
+    }
+});
+
+pencilTool.addEventListener('mouseleave', () => {
+    if (isPencilActive) {
+        strokeSizeContainer.style.display = 'none';
+    }
+});
 
 
 eraserTool.addEventListener("click", () => {
@@ -2719,6 +2870,7 @@ eraserTool.addEventListener("click", () => {
         neonPenTool.classList.remove("active");
         selectionTool.classList.remove("active");
         setBackgroundTool.classList.remove("active");
+        shapesTool.classList.remove("active");
         hideTextOverlay();
         pencilTool.style.backgroundColor = ""; // Reset pencil background color
         pixelEraserTool.style.backgroundColor = ""; // Reset pencil background color
@@ -2750,6 +2902,7 @@ pixelEraserTool.addEventListener("click", () => {
         neonPenTool.classList.remove("active");
         selectionTool.classList.remove("active");
         setBackgroundTool.classList.remove("active");
+        shapesTool.classList.remove("active");
         hideTextOverlay();
         pencilTool.style.backgroundColor = ""; // Reset pencil background color
         eraserTool.style.backgroundColor = ""; // Reset pencil background color
@@ -2782,6 +2935,7 @@ neonPenTool.addEventListener("click", () => {
         pixelEraserTool.classList.remove("active");
         selectionTool.classList.remove("active");
         setBackgroundTool.classList.remove("active");
+        shapesTool.classList.remove("active");
         hideTextOverlay();
         pencilTool.style.backgroundColor = ""; // Reset pencil background color
         eraserTool.style.backgroundColor = ""; // Reset eraser background color
@@ -2815,6 +2969,7 @@ selectionTool.addEventListener("click", () => {
         neonPenTool.classList.remove("active");
         pencilTool.classList.remove("active");
         setBackgroundTool.classList.remove("active");
+        shapesTool.classList.remove("active");
         hideTextOverlay();
         eraserTool.style.backgroundColor = ""; // Reset eraser background color
         pixelEraserTool.style.backgroundColor = ""; // Reset eraser background color
@@ -2837,6 +2992,7 @@ function deactivateOtherTools() {
     currentShape = null;        // Reset current shape
     document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.shape-button').forEach(btn => btn.classList.remove('shape-active'));
+    
 }
 
 
@@ -2847,6 +3003,9 @@ function activateRectangleTool() {
     isShapeToolActive = true;
     currentShape = 'rectangle';
     canvas.style.cursor = 'crosshair';
+    document.getElementById('circleTool').classList.remove('active');
+    document.getElementById('triangleTool').classList.remove('active');
+    document.getElementById('rectangleTool').classList.add('active');
     document.getElementById('rectangleTool').classList.add('shape-active');
 }
 
@@ -2855,6 +3014,10 @@ function activateCircleTool() {
     isShapeToolActive = true;
     currentShape = 'circle';
     canvas.style.cursor = 'crosshair';
+    document.getElementById('triangleTool').classList.remove('active');
+    document.getElementById('rectangleTool').classList.remove('active');
+    
+    document.getElementById('circleTool').classList.add('active');
     document.getElementById('circleTool').classList.add('shape-active');
 }
 
@@ -2863,7 +3026,40 @@ function activateTriangleTool() {
     isShapeToolActive = true;
     currentShape = 'triangle';
     canvas.style.cursor = 'crosshair';
+    document.getElementById('rectangleTool').classList.remove('active');
+    document.getElementById('circleTool').classList.remove('active');
+    document.getElementById('triangleTool').classList.add('active');
     document.getElementById('triangleTool').classList.add('shape-active');
+}
+
+
+//Shapes Dropdown
+function toggleShapesDropdown() {
+
+
+    const dropdown = document.getElementById('shapesDropdown');
+    shapesTool.classList.add("active");
+    selectionTool.classList.remove("active");
+    eraserTool.classList.remove("active");
+    neonPenTool.classList.remove("active");
+    pencilTool.classList.remove("active");
+    
+    eraserTool.style.backgroundColor = ""; // Reset eraser background color
+    neonPenTool.style.backgroundColor = ""; // Reset neon-pen background color
+    pencilTool.style.backgroundColor = ""; // Reset pencil background color
+    canvas.style.cursor = "default";
+    dropdown.classList.toggle('show');
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function closeDropdown(e) {
+        if (!e.target.matches('#shapesTool') && !e.target.matches('.shape-option')) {
+            dropdown.classList.remove('show');
+            shapesTool.classList.remove("active");
+            document.removeEventListener('click', closeDropdown);
+            
+            
+        }
+    });
 }
 
 // Listen to color picker changes to update the pencil tool background color
@@ -3356,29 +3552,3 @@ lightModeToggle.addEventListener('click', updateClearColor);
 // Initial clear color setup
 updateClearColor();
 
-//Shapes Dropdown
-function toggleShapesDropdown() {
-
-
-    const dropdown = document.getElementById('shapesDropdown');
-    shapesTool.classList.add("active");
-    selectionTool.classList.remove("active");
-    eraserTool.classList.remove("active");
-    neonPenTool.classList.remove("active");
-    pencilTool.classList.remove("active");
-
-    eraserTool.style.backgroundColor = ""; // Reset eraser background color
-    neonPenTool.style.backgroundColor = ""; // Reset neon-pen background color
-    pencilTool.style.backgroundColor = ""; // Reset pencil background color
-    canvas.style.cursor = "default";
-    dropdown.classList.toggle('show');
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function closeDropdown(e) {
-        if (!e.target.matches('#shapesTool') && !e.target.matches('.shape-option')) {
-            dropdown.classList.remove('show');
-            shapesTool.classList.remove("active");
-            document.removeEventListener('click', closeDropdown);
-        }
-    });
-}
