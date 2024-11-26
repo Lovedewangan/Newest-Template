@@ -80,14 +80,14 @@ html {
   position: fixed; 
   top: 0;
   left: 0;
-  width: 800px; /* Adjust as needed */
+  width: 400px; /* Adjust as needed */
   height: 6vh; /* Full viewport height */
   background-color: #ccc;
   border-radius: 8px;
   z-index: 1000;
   display: flex; /* Change from column to row */
   align-items: center; /* Align items vertically */
-  margin-left: 33%;
+  margin-left: 40%;
   margin-top: 10px;
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); 
 }
@@ -354,7 +354,7 @@ body.dark-mode #footer {
   left: 0;
   width: 60px;
   /* Sidebar width */
-  height: 450px;
+  height: 520px;
   /* Sidebar height */
   background-color: #ccc;
   border: 1px solid #afafaf;
@@ -749,20 +749,32 @@ body.dark-mode .shape-option:hover {
 }
 
 .stroke-size-container {
-  display: flex;
+  display: none; /* Hidden by default */
   align-items: center;
-  margin: 80px 0;
-  color: white; /* Adjust color as needed */
+  background: #ffffff98;
+  padding: 10px 20px;
+  margin-left: -30px;
+  margin-top: 25px;
+  border-radius: 8px;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  /* min-width: 200px; */
+}
+
+/* Dark mode support for stroke size container */
+body.dark-mode .stroke-size-container {
+  background: #444;
+  color: #fff;
 }
 
 .stroke-size-container label {
-  margin-right: 10px;
+  margin-right: 30px;
 }
 
 .stroke-size-container input[type="range"] {
   flex-grow: 1;
   margin-right: -20px;
-  margin-bottom: 200px;
+  margin-bottom: -30px;
 }
 
 .stroke-size-container span {
