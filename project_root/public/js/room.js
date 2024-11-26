@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const API_URL = 'http://localhost:8080';
-
+    const API_URL = 'https://pencil-whiteboard.onrender.com';
+    
     // Function to check if server is available
     async function checkServerHealth() {
         try {
