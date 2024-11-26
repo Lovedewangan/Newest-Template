@@ -41,7 +41,7 @@ function connectWebSocket() {
     // Set currentRoomId globally before creating socket
     currentRoomId = roomId;
 
-    socket = new WebSocket(`ws://localhost:8080?room=${roomId}`);
+    socket = new WebSocket(`wss://pencil-whiteboard.onrender.com?room=${roomId}`);
     
     socket.onopen = function (event) {
         console.log('Connected to the WebSocket server');
