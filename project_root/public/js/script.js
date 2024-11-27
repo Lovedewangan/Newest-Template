@@ -31,12 +31,7 @@ function connectWebSocket() {
     const roomId = sessionStorage.getItem('roomId');
     const passcode = sessionStorage.getItem('passcode');
 
-    // Validate room and passcode
-    if (!roomId || !passcode) {
-        alert('Room ID or passcode is missing. Redirecting to room page.');
-        window.location.href = '/room.html';
-        return;
-    }
+    
 
     // Set currentRoomId globally before creating socket
     currentRoomId = roomId;
@@ -92,6 +87,68 @@ function connectWebSocket() {
 
 // Call this function when your application starts
 connectWebSocket();
+
+// Add these functions to your existing script.js
+
+function getRoomShareMessage() {
+    const roomId = sessionStorage.getItem('roomId');
+    const passcode = sessionStorage.getItem('passcode');
+    
+    if (!roomId || !passcode) {
+        alert('Room details not available. Please create or join a room first.');
+        return null;
+    }
+
+    return `Join my Pencil Whiteboard Room!\n\nRoom ID: ${roomId}\nPasscode: ${passcode}\n\nVisit: ${window.location.origin}/room.html to join.`;
+}
+
+function shareViaWhatsApp() {
+    const message = getRoomShareMessage();
+    if (message) {
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    }
+}
+
+function shareViaTelegram() {
+    const message = getRoomShareMessage();
+    if (message) {
+        const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin + '/room.html')}&text=${encodeURIComponent(message)}`;
+        window.open(telegramUrl, '_blank');
+    }
+}
+
+function copyRoomDetails() {
+    const message = getRoomShareMessage();
+    if (message) {
+        navigator.clipboard.writeText(message).then(() => {
+            alert('Room details copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            alert('Failed to copy room details.');
+        });
+    }
+}
+
+// Add event listener for the share button
+document.addEventListener('DOMContentLoaded', () => {
+    const shareRoomButton = document.getElementById('shareRoomButton');
+    const shareOptionsDropdown = document.getElementById('shareOptionsDropdown');
+
+    if (shareRoomButton && shareOptionsDropdown) {
+        shareRoomButton.addEventListener('click', () => {
+            shareOptionsDropdown.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', (event) => {
+            if (!shareRoomButton.contains(event.target) && 
+                !shareOptionsDropdown.contains(event.target)) {
+                shareOptionsDropdown.classList.remove('show');
+            }
+        });
+    }
+});
 
 window.addEventListener('online', () => {
     updateConnectionStatus(true);

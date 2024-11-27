@@ -80,7 +80,7 @@ html {
   position: fixed; 
   top: 0;
   left: 0;
-  width: 400px; /* Adjust as needed */
+  width: 520px; /* Adjust as needed */
   height: 6vh; /* Full viewport height */
   background-color: #ccc;
   border-radius: 8px;
@@ -779,4 +779,55 @@ body.dark-mode .stroke-size-container {
 
 .stroke-size-container span {
   width: 30px;
+}
+
+/* Share Button Styles */
+.share-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.share-button:hover {
+  background-color: #45a049;
+}
+
+.share-dropdown {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 120px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  border-radius: 4px;
+}
+
+.share-dropdown.show {
+  display: block;
+}
+
+.share-dropdown .share-option {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+}
+
+.share-dropdown .share-option:hover {
+  background-color: #f1f1f1;
+}
+
+#shareRoomButton{
+  margin-left: 12px;
+  margin-right: 12px;
 }
